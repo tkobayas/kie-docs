@@ -87,6 +87,24 @@ The custom operator's implementation Java code wouldn't need to be changed.
    Person(age > 10 && age < 20)
 ----
 
+* Drop `agenda-group` to be replaced by `ruleflow-group`
+
+.DRL6
+[source]
+----
+   agenda-group "my-group"
+----
+
+.DRL10 (also valid in DRL6)
+[source]
+----
+   ruleflow-group "my-group"
+----
+
+`agenda-group` behaves the same as `ruleflow-group`, so this attribute has been consolidated into `ruleflow-group` in DRL10.
+
+This deprecation applies only to the DRL syntax; the Java APIs for `agenda-group` remain supported.
+
 * Drop double ampersand as infix and
 
 .DRL6

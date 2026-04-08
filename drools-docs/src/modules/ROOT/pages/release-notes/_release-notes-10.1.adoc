@@ -26,6 +26,7 @@ DRL10 introduces the following changes mainly to reduce ambiguity:
 
 * Require a prefix '##' to custom operators
 * Drop half constraint syntax
+* Drop `agenda-group` to be replaced by `ruleflow-group`
 * Drop double ampersand as infix and
 * Drop double pipe as infix or
 * Drop annotation inside LHS pattern
