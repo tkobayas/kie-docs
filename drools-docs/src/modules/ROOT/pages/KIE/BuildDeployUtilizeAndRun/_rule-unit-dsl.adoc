@@ -106,3 +106,98 @@ As you define rules using `defineRules` method, you can execute the rules, of co
 ----
 
 You can find various test cases under https://github.com/apache/incubator-kie-drools/tree/main/drools-ruleunits/drools-ruleunits-dsl
+
+== SyntheticRuleUnitBuilder
+
+While the Rule Unit DSL described above requires you to write a concrete Java class implementing `RuleUnitDefinition`, `SyntheticRuleUnitBuilder` lets you construct a rule unit entirely at runtime without writing a dedicated class. DataSources, globals, and even the unit name are all registered dynamically through a builder API.
+
+This is useful when the structure of the rule unit itself — not just the rules, but which DataSources exist and what types they hold — is only known at runtime. For example, when rules and their data models are defined in YAML, a database, or a UI.
+
+=== Basic example
+
+The following example builds and executes a simplified version of the "Hello World" logic shown earlier, but without defining a `HelloWorldUnit` class:
+
+[source,java]
+----
+    DataStore<String> strings = DataSource.createStore();
+    DataStore<Integer> ints = DataSource.createStore();
+    List<String> results = new ArrayList<>();
+
+    SyntheticRuleUnit unit = SyntheticRuleUnitBuilder.build("HelloWorld") // <1>
+            .registerDataSource("strings", strings, String.class) // <2>
+            .registerDataSource("ints", ints, Integer.class)
+            .registerGlobal("results", results) // <3>
+            .defineRules(rulesFactory -> { // <4>
+                // /strings[ this == "Hello World" ]
+                rulesFactory.rule()
+                        .on(strings)
+                        .filter(EQUAL, "Hello World")
+                        .execute(results, r -> r.add("it worked!"));
+
+                // /strings[ length > 5 ]
+                rulesFactory.rule()
+                        .on(strings)
+                        .filter(s -> s.length(), GREATER_THAN, 5)
+                        .execute(results, (r, s) -> r.add("it also worked with " + s.toUpperCase()));
+            });
+
+    RuleUnitInstance<SyntheticRuleUnit> unitInstance = RuleUnitProvider.get().createRuleUnitInstance(unit);
+
+    strings.add("Hello World");
+    assertThat(unitInstance.fire()).isEqualTo(2);
+    assertThat(results).containsExactlyInAnyOrder("it worked!", "it also worked with HELLO WORLD");
+
+    unitInstance.close();
+----
+<1> The unit name is an arbitrary string, not tied to a Java class name.
+<2> DataSources are registered by name and type. You can register `DataStore`, `DataStream`, or `SingletonStore`.
+<3> Globals are registered by name.
+<4> Rules are defined using the same `RulesFactory` API as the standard Rule Unit DSL.
+
+=== Accessing DataSources and globals
+
+Because there are no typed getter methods on the class, you access DataSources and globals by name after the unit is created:
+
+[source,java]
+----
+    // Access DataSources by name and type
+    unit.getDataStore("strings", String.class).add("Hello World");
+    unit.getDataStream("events", Event.class);
+    unit.getSingletonStore("config", Config.class);
+
+    // Access globals by name and type
+    List results = unit.getGlobal("results", List.class);
+----
+
+=== Comparison with the standard Rule Unit DSL
+
+[cols="1,1,1", options="header"]
+|===
+|
+| Standard Rule Unit DSL
+| SyntheticRuleUnitBuilder
+
+| Unit class
+| You write a Java class implementing `RuleUnitDefinition`
+| No class needed; uses the built-in `SyntheticRuleUnit` class
+
+| Unit identity
+| Java class FQCN (e.g., `com.example.MyUnit`)
+| Arbitrary string (e.g., `"MyUnit"`)
+
+| DataSources and globals
+| Typed fields with getters — compile-time safe
+| Registered by string name — accessed via `getDataStore("name", Type.class)`
+
+| Rule definition
+| `defineRules(RulesFactory)` method on your class
+| `Consumer<RulesFactory>` lambda passed to the builder
+
+| Multiple units per class
+| No (one class = one unit)
+| Yes (each builder call with a different name creates a distinct unit)
+
+| Use case
+| Rules and data model are known at compile time
+| Rules and/or data model are generated from an external source at runtime
+|===
