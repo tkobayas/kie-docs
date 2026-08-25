@@ -115,7 +115,7 @@ This is useful when the structure of the rule unit itself — not just the rules
 
 === Basic example
 
-The following example builds and executes the same "Hello World" logic shown earlier, but without defining a `HelloWorldUnit` class:
+The following example builds and executes a simplified version of the "Hello World" logic shown earlier, but without defining a `HelloWorldUnit` class:
 
 [source,java]
 ----
@@ -166,7 +166,7 @@ Because there are no typed getter methods on the class, you access DataSources a
     unit.getSingletonStore("config", Config.class);
 
     // Access globals by name and type
-    List<String> results = unit.getGlobal("results", List.class);
+    List results = unit.getGlobal("results", List.class);
 ----
 
 === Comparison with the standard Rule Unit DSL
